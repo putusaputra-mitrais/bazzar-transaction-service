@@ -29,7 +29,7 @@ public class SwaggerConfig {
     private ApiInfo apiInfo() {
         ApiInfo apiInfo = new ApiInfo(
                 "Bazzar Apps REST API", 
-                "API for handling user service", 
+                "API for handling transaction service", 
                 "1.0", "Terms of service", 
                 new Contact("I Putu Saputra", "www.mitrais.com", "iputu.saputra@mitrais.com"), 
                 "Apache License Version 2.0",

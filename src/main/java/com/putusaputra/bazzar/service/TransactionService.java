@@ -6,8 +6,13 @@ import java.util.stream.Collectors;
 import javax.transaction.Transactional;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.putusaputra.bazzar.dto.Product;
+import com.putusaputra.bazzar.dto.ResponseWrapper;
 import com.putusaputra.bazzar.dto.TransactionSaveRequest;
 import com.putusaputra.bazzar.dto.TransactionSaveResponse;
 import com.putusaputra.bazzar.dto.TransactionUpdateRequest;
@@ -39,8 +44,11 @@ public class TransactionService {
                         detail.setTransaction(transaction);
                         return detail;
                     }).collect(Collectors.toList());
+            
             transaction.setTransactionDetail(details);
             Transaction savedTransaction = this.repository.save(transaction);
+            this.decreaseStock(details);
+            
             return TransactionSaveResponse.builder()
                     .transactionId(savedTransaction.getId())
                     .build();
@@ -76,5 +84,32 @@ public class TransactionService {
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
+    }
+    
+    public Product getProductById(String productId) {
+        ResponseWrapper responseWrapper = null;
+        Product result = null;
+        ObjectMapper objMapper = new ObjectMapper();
+        
+        final String uri = String.format("http://localhost:8081/api/product/get-by-id?productId=%s", productId);
+        RestTemplate restTemplate = new RestTemplate();
+        ResponseEntity<ResponseWrapper> response = restTemplate.getForEntity(uri, ResponseWrapper.class);
+        responseWrapper = response.getBody();
+        result = objMapper.convertValue(responseWrapper.getData(), Product.class);
+        return result;
+    }
+    
+    public void updateProduct(Product product) {
+        final String uri = "http://localhost:8081/api/product/save";
+        RestTemplate restTemplate = new RestTemplate();
+        restTemplate.postForObject(uri, product, Product.class);
+    }
+    
+    public void decreaseStock(List<TransactionDetail> details) {
+        details.stream().forEach(detail -> {
+            Product product = this.getProductById(detail.getProductId());
+            product.setStock(product.getStock() - detail.getQty());
+            this.updateProduct(product);
+        });
     }
 }
